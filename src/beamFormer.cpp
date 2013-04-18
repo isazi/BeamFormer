@@ -28,12 +28,12 @@ using std::endl;
 using std::fixed;
 using std::setprecision;
 
-#include <GPUData.hpp>
+#include <CLData.hpp>
 #include <BeamFormer.hpp>
 #include <InitializeOpenCL.hpp>
 #include <Exceptions.hpp>
 
-using isa::OpenCL::GPUData;
+using isa::OpenCL::CLData;
 using LOFAR::RTCP::BeamFormer;
 using isa::OpenCL::initializeOpenCL;
 using isa::Exceptions::OpenCLError;
@@ -54,9 +54,9 @@ const unsigned int beamsBlock = 10;
 
 
 int main(int argc, char *argv[]) {
-	GPUData< float > *input = 0;
-	GPUData< float > *output = 0;
-	GPUData< float > *weights = 0;
+	CLData< float > *input = 0;
+	CLData< float > *output = 0;
+	CLData< float > *weights = 0;
 	BeamFormer< float > *beamFormer = 0;
 
 	cout << endl << "LOFAR Beam Former" << endl << endl;
@@ -66,23 +66,26 @@ int main(int argc, char *argv[]) {
 	vector< cl::Device > *oclDevices = new vector< cl::Device >();
 	vector< vector< cl::CommandQueue > > *oclQueues = new vector< vector< cl::CommandQueue > >();
 	try {
-		input = new GPUData< float >("Input", true);
+		input = new CLData< float >("Input", true);
 		input->allocateHostData(nrStations * nrChannels * (nrSamplesPerSecond + (nrSamplesPerSecond & 0x00000003)) * nrPolarizations * 2);
 		initializeOpenCL(oclPlatformID, 1, oclPlatforms, oclContext, oclDevices, oclQueues);
 		input->setCLContext(oclContext);
 		input->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+		input->setDeviceReadOnly();
 		input->allocateDeviceData();
 		
-		output = new GPUData< float >("Output", true);
+		output = new CLData< float >("Output", true);
 		output->allocateHostData(nrBeams * nrChannels * (nrSamplesPerSecond + (nrSamplesPerSecond & 0x00000003)) * nrPolarizations * 2);
 		output->setCLContext(oclContext);
 		output->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+		output->setDeviceWriteOnly();
 		output->allocateDeviceData();
 		
-		weights = new GPUData< float >("Weights", true);
+		weights = new CLData< float >("Weights", true);
 		weights->allocateHostData(nrChannels * nrStations * nrBeams * 2);
 		weights->setCLContext(oclContext);
 		weights->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+		weights->setDeviceReadOnly();
 		weights->allocateDeviceData();
 	}
 	catch ( OpenCLError err ) {

@@ -28,12 +28,12 @@ using std::endl;
 using std::fixed;
 using std::setprecision;
 
-#include <GPUData.hpp>
+#include <CLData.hpp>
 #include <BeamFormer.hpp>
 #include <InitializeOpenCL.hpp>
 #include <Exceptions.hpp>
 
-using isa::OpenCL::GPUData;
+using isa::OpenCL::CLData;
 using LOFAR::RTCP::BeamFormer;
 using isa::OpenCL::initializeOpenCL;
 using isa::Exceptions::OpenCLError;
@@ -51,9 +51,9 @@ const unsigned int nrBeams = 32;
 
 
 int main(int argc, char *argv[]) {
-	GPUData< float > *input = 0;
-	GPUData< float > *output = 0;
-	GPUData< float > *weights = 0;
+	CLData< float > *input = 0;
+	CLData< float > *output = 0;
+	CLData< float > *weights = 0;
 	BeamFormer< float > *beamFormer = 0;
 
 	vector< cl::Platform > *oclPlatforms = new vector< cl::Platform >();
@@ -72,10 +72,11 @@ int main(int argc, char *argv[]) {
 
 	for ( unsigned int stations = 2; stations <= nrStations; stations *= 2 ) {
 		try {
-			input = new GPUData< float >("Input", true);
+			input = new CLData< float >("Input", true);
 			input->allocateHostData(stations * nrChannels * (nrSamplesPerSecond | 2) * nrPolarizations * 2);
 			input->setCLContext(oclContext);
 			input->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+			input->setDeviceReadOnly();
 			input->allocateDeviceData();
 		} catch ( OpenCLError err ) {
 			cerr << err.what() << endl;
@@ -84,16 +85,18 @@ int main(int argc, char *argv[]) {
 		
 		for ( unsigned int beams = 1; beams <= nrBeams; beams++ ) {
 			try {
-				output = new GPUData< float >("Output", true);
+				output = new CLData< float >("Output", true);
 				output->allocateHostData(nrBeams * nrChannels * (nrSamplesPerSecond | 2) * nrPolarizations * 2);
 				output->setCLContext(oclContext);
 				output->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+				output->setDeviceWriteOnly();
 				output->allocateDeviceData();
 				
-				weights = new GPUData< float >("Weights", true);
+				weights = new CLData< float >("Weights", true);
 				weights->allocateHostData(nrChannels * nrStations * nrBeams * 2);
 				weights->setCLContext(oclContext);
 				weights->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+				weights->setDeviceReadOnly();
 				weights->allocateDeviceData();
 			} catch ( OpenCLError err ) {
 				cerr << err.what() << endl;

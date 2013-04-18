@@ -27,12 +27,12 @@ using std::make_pair;
 using std::vector;
 
 #include <kernels/Kernel.hpp>
-#include <GPUData.hpp>
+#include <CLData.hpp>
 #include <Exceptions.hpp>
 #include <utils.hpp>
 
 using isa::OpenCL::Kernel;
-using isa::OpenCL::GPUData;
+using isa::OpenCL::CLData;
 using isa::Exceptions::OpenCLError;
 using isa::utils::replace;
 using isa::utils::toString;
@@ -52,7 +52,7 @@ public:
 	BeamFormer(string name, string dataType);
 
 	void generateCode() throw (OpenCLError);
-	void operator()(GPUData< T > *input, GPUData< T > *output, GPUData< float > *weights) throw (OpenCLError);
+	void operator()(CLData< T > *input, CLData< T > *output, CLData< float > *weights) throw (OpenCLError);
 
 	inline void setBeamsBlock(unsigned int block);
 	inline void setNrThreadsPerBlock(unsigned int threads);
@@ -225,7 +225,7 @@ template< typename T > void BeamFormer< T >::generateCode() throw (OpenCLError) 
 }
 
 
-template< typename T > void BeamFormer< T >::operator()(GPUData< T > *input, GPUData< T > *output, GPUData< float > *weights) throw (OpenCLError) {
+template< typename T > void BeamFormer< T >::operator()(CLData< T > *input, CLData< T > *output, CLData< float > *weights) throw (OpenCLError) {
 
 	this->setArgument(0, *(input->getDeviceData()));
 	this->setArgument(1, *(output->getDeviceData()));
