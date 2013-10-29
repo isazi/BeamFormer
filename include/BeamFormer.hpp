@@ -26,7 +26,7 @@ using std::pair;
 using std::make_pair;
 using std::vector;
 
-#include <kernels/Kernel.hpp>
+#include <Kernel.hpp>
 #include <CLData.hpp>
 #include <Exceptions.hpp>
 #include <utils.hpp>
