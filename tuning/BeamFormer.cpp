@@ -97,14 +97,14 @@ int main(int argc, char *argv[]) {
 	output = new CLData< float >("Output", true);
 	output->allocateHostData(observation.getNrBeams() * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * nrPolarizations * 2);
 	output->setCLContext(oclContext);
-	output->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+	output->setCLQueue(&(oclQueues->at(clDeviceID)[0]));
 	output->setDeviceWriteOnly();
 	output->allocateDeviceData();
 	
 	weights = new CLData< float >("Weights", true);
 	weights->allocateHostData(observation.getNrChannels() * observation.getNrStations() * observation.getNrBeams() * 2);
 	weights->setCLContext(oclContext);
-	weights->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+	weights->setCLQueue(&(oclQueues->at(clDeviceID)[0]));
 	weights->setDeviceReadOnly();
 	weights->allocateDeviceData();
 
