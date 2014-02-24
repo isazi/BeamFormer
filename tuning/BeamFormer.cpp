@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 	input = new CLData< float >("Input", true);
 	input->allocateHostData(observation.getNrStations() * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * nrPolarizations * 2);
 	input->setCLContext(oclContext);
-	input->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
+	input->setCLQueue(&(oclQueues->at(clDeviceID)[0]));
 	input->setDeviceReadOnly();
 	input->allocateDeviceData();
 		
