@@ -29,6 +29,7 @@ using isa::OpenCL::CLData;
 using isa::Exceptions::OpenCLError;
 #include <utils.hpp>
 using isa::utils::replace;
+using isa::utils::toString;
 using isa::utils::toStringValue;
 using isa::utils::giga;
 #include <Observation.hpp>
@@ -106,11 +107,11 @@ template< typename T > void BeamFormer< T >::generateCode() throw (OpenCLError) 
 	string nrSamplesPerPaddedSecond_s = toStringValue< unsigned int >(observation->getNrSamplesPerPaddedSecond());
 	string nrChannels_s = toStringValue< unsigned int >(observation->getNrChannels());
 	string averagingFactor_s = toStringValue< float >(averagingFactor);
-	if ( averagingFactor_s->find('.') == string::npos ) {
-		averagingFactor_s->append(".0f");
+	if ( averagingFactor_s.find('.') == string::npos ) {
+		averagingFactor_s.append(".0f");
 	}
 	else {
-		averagingFactor_s->append("f");
+		averagingFactor_s.append("f");
 	}
 
 	if ( stokesI ) {
@@ -130,7 +131,7 @@ template< typename T > void BeamFormer< T >::generateCode() throw (OpenCLError) 
 	"<%DEFINITIONS%>"
 	"\n"
 	"for ( unsigned int station = 0; station < " + nrStations_s + "; station++ ) {\n"
-	"item = (channel * " + *nrStations_s + " * " + nrBeams_s + ") + (station * " + nrBeams_s + ") + beam;\n"
+	"item = (channel * " + nrStations_s + " * " + nrBeams_s + ") + (station * " + nrBeams_s + ") + beam;\n"
 	"cSample = samples[(channel * " + nrStations_s + " * " + nrSamplesPerPaddedSecond_s + ") + (station * " + nrSamplesPerPaddedSecond_s + ") + sample];\n"
 	"\n"
 	"<%BEAMS%>"
