@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 	unsigned int minThreads = 0;
 	unsigned int maxThreadsPerBlock = 0;
 	unsigned int maxItemsPerThread = 0;
-	Observation< dataType > observation("DedispersionTuning", typeName);
+	Observation< float > observation("DedispersionTuning", "float");
 	CLData< float > * input = 0;
 	CLData< float > * output = 0;
 	CLData< float > * weights = 0;

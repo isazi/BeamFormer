@@ -3,7 +3,7 @@ include		../Makefile.inc
 
 main: clean BeamFormer
  
-tuning: BeamFormer.cpp
+BeamFormer: BeamFormer.cpp
 	$(LINKER) -o $(PROJ_BASE)/bin/BeamFormerTuning BeamFormer.cpp $(UTILS_SRC) $(INCLUDES) $(LIBS) $(CFLAGS) $(LDFLAGS)
 
 clean:
