@@ -67,8 +67,8 @@ int main(int argc, char *argv[]) {
 		maxItemsPerThread = args.getSwitchArgument< unsigned int >("-max_items");
 		observation.setNrSamplesPerSecond(args.getSwitchArgument< unsigned int >("-samples"));
 		observation.setNrChannels(args.getSwitchArgument< unsigned int >("-channels"));
-		observation.setNrStations(args.getSwitchArgument< unsigned int >("-stations")));
-		observation.setNrBeams(args.getSwitchArgument< unsigned int >("-beams")));
+		observation.setNrStations(args.getSwitchArgument< unsigned int >("-stations"));
+		observation.setNrBeams(args.getSwitchArgument< unsigned int >("-beams"));
 	} catch ( EmptyCommandLine err ) {
 		cerr << argv[0] << " -iterations ... -opencl_platform ... -opencl_device ... -padding ... -min_threads ... -max_threads ... -max_items ... -samples ... -channels ... -stations ... -beams ..." << endl;
 		return 1;
@@ -82,13 +82,13 @@ int main(int argc, char *argv[]) {
 	vector< cl::Device > *oclDevices = new vector< cl::Device >();
 	vector< vector< cl::CommandQueue > > *oclQueues = new vector< vector< cl::CommandQueue > >();
 	
-	initializeOpenCL(oclPlatformID, 1, oclPlatforms, oclContext, oclDevices, oclQueues);
+	initializeOpenCL(clPlatformID, 1, oclPlatforms, oclContext, oclDevices, oclQueues);
 
 	cout << fixed << endl;
 	cout << "# nrStations nrBeams nrSamplesPerSecond nrChannels nrSamplesPerBlock beamsBlock GFLOP/s std.dev. time std.dev." << endl << endl;
 
 	input = new CLData< float >("Input", true);
-	input->allocateHostData(observation.getNrStations() * observation.getNrChannels() * observation.nrSamplesPerPaddedSecond() * nrPolarizations * 2);
+	input->allocateHostData(observation.getNrStations() * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * nrPolarizations * 2);
 	input->setCLContext(oclContext);
 	input->setCLQueue(&(oclQueues->at(oclDeviceID)[0]));
 	input->setDeviceReadOnly();
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
 			BeamFormer< float > * beamFormer = new BeamFormer< float >("BeamFormer", "float");
 
 			try {
-				beamFormer->bindOpenCL(oclContext, &(oclDevices->at(oclDeviceID)), &(oclQueues->at(oclDeviceID)[0]));
+				beamFormer->bindOpenCL(oclContext, &(oclDevices->at(clDeviceID)), &(oclQueues->at(clDeviceID)[0]));
 				beamFormer->setBeamsBlock(*beams);
 				beamFormer->setNrSamplesPerBlock(*samples);
 				beamFormer->setObservation(&observation);
