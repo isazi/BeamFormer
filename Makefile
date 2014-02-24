@@ -1,5 +1,5 @@
 
-SUBDIRS := src
+SUBDIRS := tuning
 
 all:
 	@for dir in $(SUBDIRS); do\
