@@ -140,23 +140,13 @@ int main(int argc, char *argv[]) {
 				// Warm-up
 				(*beamFormer)(input, output, weights);
 				beamFormer->getTimer().reset();
+				beamFormer->resetStats();
 
 				for ( unsigned int iteration = 0; iteration < nrIterations; iteration++ ) {
 					(*beamFormer)(input, output, weights);
-
-					if ( iteration == 0 ) {
-						Acur = beamFormer->getGFLOP() / beamFormer->getTimer().getLastRunTime();
-					} else {
-						Aold = Acur;
-						Vold = Vcur;
-
-						Acur = Aold + (((beamFormer->getGFLOP() / beamFormer->getTimer().getLastRunTime()) - Aold) / (iteration + 1));
-						Vcur = Vold + (((beamFormer->getGFLOP() / beamFormer->getTimer().getLastRunTime()) - Aold) * ((beamFormer->getGFLOP() / beamFormer->getTimer().getLastRunTime()) - Acur));
-					}
 				}
-				Vcur = sqrt(Vcur / nrIterations);
 
-				cout << observation.getNrStations() << " " << observation.getNrBeams() << " " << observation.getNrSamplesPerSecond() << " " << observation.getNrChannels() << " " << *samples << " " << *beams << " " << setprecision(3) << Acur << " " << Vcur << " " << setprecision(6) << beamFormer->getTimer().getAverageTime() << " " << beamFormer->getTimer().getStdDev() << endl;
+				cout << observation.getNrStations() << " " << observation.getNrBeams() << " " << observation.getNrSamplesPerSecond() << " " << observation.getNrChannels() << " " << *samples << " " << *beams << " " << setprecision(3) << beamFormer->getGFLOPs() << " " << beamFormer->getGFLOPsErr() << " " << setprecision(6) << beamFormer->getTimer().getAverageTime() << " " << beamFormer->getTimer().getStdDev() << endl;
 			} catch ( OpenCLError err ) {
 				cerr << err.what() << endl;
 				continue;
