@@ -124,10 +124,6 @@ int main(int argc, char *argv[]) {
 
 	for ( vector< unsigned int >::iterator samples = samplesPerBlock.begin(); samples != samplesPerBlock.end(); samples++ ) {
 		for ( vector< unsigned int >::iterator beams = beamsBlock.begin(); beams != beamsBlock.end(); beams++ ) {
-			double Acur = 0.0;
-			double Aold = 0.0;
-			double Vcur = 0.0;
-			double Vold = 0.0;
 			BeamFormer< float > * beamFormer = new BeamFormer< float >("BeamFormer", "float");
 
 			try {
