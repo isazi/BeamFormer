@@ -9,9 +9,9 @@ Many-core beam forming algorithm.
 
 ## Dependencies
 
-* [AstroData](https://github.com/isazi/AstroData) - 1.0 branch
-* [OpenCL](https://github.com/isazi/OpenCL) - 1.0 branch
-* [utils](https://github.com/isazi/utils) - 1.0 branch
+* [AstroData](https://github.com/isazi/AstroData) - master branch
+* [OpenCL](https://github.com/isazi/OpenCL) - master branch
+* [utils](https://github.com/isazi/utils) - master branch
 
 ## License
 
