@@ -1,4 +1,4 @@
-// Copyright 2011 Alessio Sclocco <a.sclocco@vu.nl>
+// Copyright 2014 Alessio Sclocco <a.sclocco@vu.nl>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,238 +13,105 @@
 // limitations under the License.
 
 #include <string>
-using std::string;
-#include <vector>
-using std::vector;
 
-#include <Kernel.hpp>
-using isa::OpenCL::Kernel;
-#include <CLData.hpp>
-using isa::OpenCL::CLData;
-#include <Exceptions.hpp>
-using isa::Exceptions::OpenCLError;
 #include <utils.hpp>
-using isa::utils::replace;
-using isa::utils::toString;
-using isa::utils::toStringValue;
-using isa::utils::giga;
 #include <Observation.hpp>
-using AstroData::Observation;
 
 
 #ifndef BEAM_FORMER_HPP
 #define BEAM_FORMER_HPP
 
-namespace LOFAR {
-namespace RTCP {
+namespace RadioAstronomy {
 
+// OpenCL beam forming algorithm
+std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const unsigned int nrBeamsPerBlock, const unsigned int nrSamplesPerThread, const unsigned int nrBeamsPerThread, const std::string & dataType, const AstroData::Observation & observation);
 
-template< typename T > class BeamFormer : public Kernel< T > {
-public:
-	BeamFormer(string name, string dataType);
+// Implementations
+std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const unsigned int nrBeamsPerBlock, const unsigned int nrSamplesPerThread, const unsigned int nrBeamsPerThread, const std::string & dataType, const AstroData::Observation & observation) {
+  std::string * code = new std::string();
 
-	void generateCode() throw (OpenCLError);
-	void operator()(CLData< T > * input, CLData< T > * output, CLData< float > * weights) throw (OpenCLError);
+  // Begin kernel's template
+  *code = "__kernel void beamFormer(__global const " + dataType + "4 * restrict const samples, __global " + dataType + "4 * restrict const output, __global const float2 * restrict const weights) {\n"
+    "const unsigned int channel = get_group_id(2);\n"
+    "const unsigned int beam = (get_group_id(1) * " + isa::utils::toString< unsigned int >(nrBeamsPerBlock * nrBeamsPerThread) + ") + (get_local_id(1) * " + isa::utils::toString< unsigned int >(nrBeamsPerThread) + ");\n"
+    "<%DEF_SAMPLES%>"
+    "<%DEF_SUMS%>"
+    + dataType + "4 sample = (" + dataType + "4)(0);\n"
+    "float2 weight = (float2)(0);\n"
+    "\n"
+    "for ( unsigned int station = 0; station < " + isa::utils::toString< unsigned int >(observation.getNrStations()) + "; station++ ) {\n"
+    "<%LOAD_COMPUTE%>"
+    "}\n"
+    "<%AVERAGE%>"
+    "<%STORE%>"
+    "}\n";
+  std::string defSamplesTemplate = "const unsigned int sample<%SNUM%> = (get_group_id(0) * " + isa::utils::toString< unsigned int >(nrSamplesPerBlock * nrSamplesPerThread) + ") + get_local_id(0) + <%OFFSET%>;\n";
+  std::string defSumsTemplate = dataType + "4 beam<%BNUM%>s<%SNUM%> = (" + dataType + "4)(0);\n";
+  std::string loadComputeTemplate = dataType + "4 sample = samples[(channel * " + isa::utils::toString< unsigned int >(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString< unsigned int >(observation.getNrSamplesPerPaddedSecond()) + ") + sample<%SNUM%>];\n"
+    "<%SUMS%>";
+  std::string sumsTemplate = "weight = weights[(channel * " + isa::utils::toString< unsigned int >(observation.getNrStations() * observation.getNrBeams()) + ") + (station * " + isa::utils::toString< unsigned int >(observation.getNrBeams()) + ") + beam + <%BNUM%>];\n"
+    "beam<%BNUM%>s<%SNUM%>.x += (sample.x * weight.x) - (sample.y * weight.y);\n"
+    "beam<%BNUM%>s<%SNUM%>.y += (sample.x * weight.y) + (sample.y * weight.x);\n"
+    "beam<%BNUM%>s<%SNUM%>.z += (sample.z * weight.x) - (sample.w * weight.y);\n"
+    "beam<%BNUM%>s<%SNUM%>.w += (sample.z * weight.y) + (sample.w * weight.x);\n";
+  std::string averageTemplate = "beam<%BNUM%>s<%SNUM%> *= " + isa::utils::toString< float >(1.0f / observation.getNrStations()) + ".0f;\n";
+  std::string storeTemplate = "output[((beam + <%BNUM%>) * " + isa::utils::toString< unsigned int >(observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond()) + ") + (channel * " + isa::unsigned::toString< unsigned int >(observation.getNrSamplesPerPaddedSecond()) + ") + sample<%SNUM%>] = beam<%BNUM%>s<%SNUM%>;\n";
+  // End kernel's template
 
-	inline void setBeamsBlock(unsigned int block);
-	inline void setNrSamplesPerBlock(unsigned int threads);
+  std::string * defSamples_s = new std::string();
+  std::string * defSums_s = new std::string();
+  std::string * loadCompute_s = new std::string();
+  std::string * average_s = new std::string();
+  std::string * store_s = new std::string();
 
-	inline void setObservation(Observation< T > * obs);
-	inline void setAveragingFactor(float factor);
-	inline void setStokesI();
-	inline void setStokesIQUV();
-	inline void setNoStokes();
+  for ( unsigned int sample = 0; sample < nrSamplesPerThread; sample++ ) {
+    std::string sample_s = isa::utils::toString< unsigned int >(sample);
+    std::string offset_s = isa::utils::toString< unsigned int >(sample * nrSamplesPerBlock);
+    std::string * sums_s = new std::string();
+    std::string * temp_s = 0;
 
-private:
-	cl::NDRange	globalSize;
-	cl::NDRange	localSize;
+    temp_s = isa::utils::replace(&defSamplesTemplate, "<%SNUM%>", sample_s);
+    temp_s = isa::utils::replace(temp_s, "<%OFFSET%>", offset_s, true);
+    defSamples_s->append(*temp_s);
+    delete temp_s;
 
-	unsigned int beamsBlock;
-	unsigned int nrSamplesPerBlock;
+    for ( unsigned int beam = 0; beam < nrBeamsPerThread; beam++ ) {
+      std::string beam_s = isa::utils::toString< unsigned int >(beam);
+      std::string * temp_s = 0;
 
-	Observation< T > * observation;
-	float averagingFactor;
-	bool stokesI;
-	bool stokesIQUV;
-};
+      temp_s = isa::utils::replace(&defSumsTemplate, "<%BNUM%>", beam_s);
+      defSums_s->append(*temp_s);
+      delete temp_s;
+      temp_s = isa::utils::replace(&sumsTemplate, "<%BNUM%>", beam_s);
+      sums_s->append(*temp_s);
+      delete temp_s;
+      temp_s = isa::utils::replace(&averageTemplate, "<%BNUM%>", beam_s);
+      average_s->append(*temp_s);
+      delete temp_s;
+      temp_s = isa::utils::replace(&storeTemplate, "<%BNUM%>", beam_s);
+      store_s->append(*temp_s);
+      delete temp_s;
+    }
+    defSums_s = isa::utils::replace(defSums_s, "<%SNUM%>", sample_s, true);
+    temp_s = isa::utils::replace(&loadComputeTemplate, "<%SNUM%>", sample_s);
+    temp_s = isa::utils::replace(temp_s, "<%SUMS%>", *sums_s, true);
+    temp_s = isa::utils::replace(temp_s, "<%SNUM%>", sample_s, true);
+    loadCompute_s->append(*temp_s);
+    delete temp_s;
+    average_s = isa::utils::replace(average_s, "<%SNUM%>", sample_s, true);
+    store_s = isa::utils::replace(store_s, "<%SNUM%>", sample_s, true);
+  }
 
+  code = isa::utils::replace(code, "<%DEF_SAMPLES%>", *defSamples_s, true);
+  code = isa::utils::replace(code, "<%DEF_SUMS%>", *defSums_s, true);
+  code = isa::utils::replace(code, "<%LOAD_COMPUTE%>", *loadCompute_s, true);
+  code = isa::utils::replace(code, "<%AVERAGE%>", *average_s, true);
+  code = isa::utils::replace(code, "<%STORE%>", *store_s, true);
 
-template< typename T > BeamFormer< T >::BeamFormer(string name, string dataType) : Kernel< T >(name, dataType), globalSize(cl::NDRange(1, 1, 1)), localSize(cl::NDRange(1, 1, 1)), beamsBlock(0), nrSamplesPerBlock(0), observation(0), averagingFactor(0), stokesI(false), stokesIQUV(false) {}
-
-template< typename T > void BeamFormer< T >::generateCode() throw (OpenCLError) {
-	long long unsigned int ops = 0;
-	long long unsigned int memOps = 0;
-
-	if ( stokesI ) {
-		ops = (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * observation->getNrStations() * 16) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * 11);
-		memOps = (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * (observation->getNrBeams() / beamsBlock) * observation->getNrStations() * 16) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * observation->getNrStations() * 8) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * 4);
-	}
-	else if ( stokesIQUV ) {
-		ops = (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * observation->getNrStations() * 16) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * 24);
-		memOps = (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * (observation->getNrBeams() / beamsBlock) * observation->getNrStations() * 16) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * observation->getNrStations() * 8) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * 16);
-	}
-	else {
-		ops = (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * observation->getNrStations() * 16) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * 4);
-		memOps = (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * (observation->getNrBeams() / beamsBlock) * observation->getNrStations() * 16) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * observation->getNrStations() * 8) + (static_cast< long long unsigned int >(observation->getNrChannels()) * observation->getNrSamplesPerSecond() * observation->getNrBeams() * 16);
-	}
-	this->arInt = ops / static_cast< double >(memOps);
-	this->gflop = giga(ops);
-	this->gb = giga(memOps);
-
-	// Begin kernel's template
-	if ( this->code != 0 ) {
-		delete this->code;
-	}
-	this->code = new string();
-	string beamsBlock_s = toStringValue< unsigned int >(beamsBlock);
-	string nrStations_s = toStringValue< unsigned int >(observation->getNrStations());
-	string nrBeams_s = toStringValue< unsigned int >(observation->getNrBeams());
-	string nrSamplesPerSecond_s = toStringValue< unsigned int >(observation->getNrSamplesPerSecond());
-	string nrSamplesPerPaddedSecond_s = toStringValue< unsigned int >(observation->getNrSamplesPerPaddedSecond());
-	string nrChannels_s = toStringValue< unsigned int >(observation->getNrChannels());
-	string averagingFactor_s = toStringValue< float >(averagingFactor);
-	if ( averagingFactor_s.find('.') == string::npos ) {
-		averagingFactor_s.append(".0f");
-	}
-	else {
-		averagingFactor_s.append("f");
-	}
-
-	if ( stokesI ) {
-		*(this->code) += "__kernel void " + this->name + "(__global " + this->dataType + "4 * samples, __global " + this->dataType + " * results, __global float2 * weights) {\n";
-	}
-	else {
-		*(this->code) += "__kernel void " + this->name + "(__global " + this->dataType + "4 * samples, __global " + this->dataType + "4 * results, __global float2 * weights) {\n";
-	}
-	*(this->code) += "const unsigned int sample = (get_group_id(0) * get_local_size(0)) + get_local_id(0);\n"
-	"const unsigned	int channel = get_group_id(1);\n"
-	"unsigned int item = 0;\n"
-	"\n"
-	+ this->dataType + "4 cSample = (" + this->dataType + "4)(0.0f);\n"
-	"float2 weight = (float2)(0.0f);\n"
-	"\n"
-	"for ( unsigned int beam = 0; beam < " + nrBeams_s + "; beam += " + beamsBlock_s + " ) {\n"
-	"<%DEFINITIONS%>"
-	"\n"
-	"for ( unsigned int station = 0; station < " + nrStations_s + "; station++ ) {\n"
-	"item = (channel * " + nrStations_s + " * " + nrBeams_s + ") + (station * " + nrBeams_s + ") + beam;\n"
-	"cSample = samples[(channel * " + nrStations_s + " * " + nrSamplesPerPaddedSecond_s + ") + (station * " + nrSamplesPerPaddedSecond_s + ") + sample];\n"
-	"\n"
-	"<%BEAMS%>"
-	"}\n"
-	"<%AVERAGE%>"
-	"item = (channel * " + nrSamplesPerSecond_s + ") + sample;\n"
-	"<%STORE%>"
-	"}\n"
-	"}\n";
-
-	string definitionsTemplate = Kernel< T >::getDataType() + "4 beam<%NUM%> = (" + Kernel< T >::getDataType() + "4)(0.0f);\n";
-
-	string beamsTemplate = "weight = weights[item++];\n"
-	"beam<%NUM%>.x += (cSample.x * weight.x) - (cSample.y * weight.y);\n"
-	"beam<%NUM%>.y += (cSample.x * weight.y) + (cSample.y * weight.x);\n"
-	"beam<%NUM%>.z += (cSample.z * weight.x) - (cSample.w * weight.y);\n"
-	"beam<%NUM%>.w += (cSample.z * weight.y) + (cSample.w * weight.x);\n";
-
-	string averageTemplate = "beam<%NUM%> *= " + averagingFactor_s + ";\n";
-
-	string storeTemplate;
-	if ( stokesI ) {
-		storeTemplate = "results[((beam + <%NUM%>) * " + nrChannels_s + " * " + nrSamplesPerPaddedSecond_s + ") + item] = ((beam<%NUM%>.x * beam<%NUM%>.x) + (beam<%NUM%>.y * beam<%NUM%>.y)) + ((beam<%NUM%>.z * beam<%NUM%>.z) + (beam<%NUM%>.w * beam<%NUM%>.w));\n";
-	}
-	else if ( stokesIQUV ) {
-		storeTemplate = "cSample.x = ((beam<%NUM%>.x * beam<%NUM%>.x) + (beam<%NUM%>.y * beam<%NUM%>.y)) + ((beam<%NUM%>.z * beam<%NUM%>.z) + (beam<%NUM%>.w * beam<%NUM%>.w));\n"
-		"cSample.y = ((beam<%NUM%>.x * beam<%NUM%>.x) + (beam<%NUM%>.y * beam<%NUM%>.y)) - ((beam<%NUM%>.z * beam<%NUM%>.z) + (beam<%NUM%>.w * beam<%NUM%>.w));\n"
-		"cSample.z = 2.0f * ((beam<%NUM%>.x * beam<%NUM%>.z) + (beam<%NUM%>.y * beam<%NUM%>.w));\n"
-		"cSample.w = 2.0f * ((beam<%NUM%>.y * beam<%NUM%>.z) - (beam<%NUM%>.x * beam<%NUM%>.w));\n"
-		"results[((beam + <%NUM%>) * " + nrChannels_s + " * " + nrSamplesPerPaddedSecond_s + ") + item] = cSample;\n";
-	}
-	else {
-		storeTemplate = "results[((beam + <%NUM%>) * " + nrChannels_s + " * " + nrSamplesPerPaddedSecond_s + ") + item] = beam<%NUM%>;\n";
-	}
-	// End kernel's template
-
-	string * definitions = new string();
-	string * beams = new string();
-	string * averages = new string();
-	string * stores = new string();
-	for ( unsigned int beam = 0; beam < beamsBlock; beam++ ) {
-		string *beam_s = toString< unsigned int >(beam);
-		string *temp;
-
-		temp = replace(&definitionsTemplate, "<%NUM%>", *beam_s);
-		definitions->append(*temp);
-		delete temp;
-		temp = replace(&beamsTemplate, "<%NUM%>",*beam_s);
-		beams->append(*temp);
-		delete temp;
-		temp = replace(&averageTemplate, "<%NUM%>", *beam_s);
-		averages->append(*temp);
-		delete temp;
-		temp = replace(&storeTemplate, "<%NUM%>", *beam_s);
-		stores->append(*temp);
-		delete temp;
-
-		delete beam_s;
-	}
-	this->code = replace(this->code, "<%DEFINITIONS%>", *definitions, true);
-	this->code = replace(this->code, "<%BEAMS%>", *beams, true);
-	this->code = replace(this->code, "<%AVERAGE%>", *averages, true);
-	this->code = replace(this->code, "<%STORE%>", *stores, true);
-	delete definitions;
-	delete beams;
-	delete averages;
-	delete stores;
-
-	globalSize = cl::NDRange(observation->getNrSamplesPerPaddedSecond(), observation->getNrChannels());
-	localSize = cl::NDRange(nrSamplesPerBlock, 1);
-
-	this->compile();
+  return code;
 }
 
-
-template< typename T > void BeamFormer< T >::operator()(CLData< T > *input, CLData< T > *output, CLData< float > *weights) throw (OpenCLError) {
-
-	this->setArgument(0, *(input->getDeviceData()));
-	this->setArgument(1, *(output->getDeviceData()));
-	this->setArgument(2, *(weights->getDeviceData()));
-
-	this->run(globalSize, localSize);
-}
-
-template< typename T > inline void BeamFormer< T >::setBeamsBlock(unsigned int block) {
-	beamsBlock = block;
-}
-
-template< typename T > inline void BeamFormer< T >::setNrSamplesPerBlock(unsigned int threads) {
-	nrSamplesPerBlock = threads;
-}
-
-template< typename T > inline void BeamFormer< T >::setObservation(Observation< T > *obs) {
-	observation = obs;
-}
-
-template< typename T > inline void BeamFormer< T >::setAveragingFactor(float factor) {
-	averagingFactor = factor;
-}
-
-template< typename T > inline void BeamFormer< T >::setStokesI() {
-	stokesI = true;
-	stokesIQUV = false;
-}
-
-template< typename T > inline void BeamFormer< T >::setStokesIQUV() {
-	stokesI = false;
-	stokesIQUV = true;
-}
-
-template< typename T > inline void BeamFormer< T >::setNoStokes() {
-	stokesI = false;
-	stokesIQUV = false;
-}
-
-} // RTCP
-} // LOFAR
+} // RadioAstronomy
 
 #endif // BEAM_FORMER_HPP
 
