@@ -142,7 +142,7 @@ int main(int argc, char * argv[]) {
 				for ( unsigned int beamsPerThread = 1; beamsPerThread <= maxItems; beamsPerThread++ ) {
 					if ( (observation.getNrBeams() % ((*beams) * beamsPerThread)) != 0 ) {
 						continue;
-					} else if ( (samplesPerThread * beamsPerThread) > maxItems ) {
+					} else if ( (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 8) > maxItems ) {
 						break;
 					}
 
