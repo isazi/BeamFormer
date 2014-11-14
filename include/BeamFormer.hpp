@@ -54,7 +54,7 @@ std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const un
     "beam<%BNUM%>s<%SNUM%>.y += (sample.x * weight.y) + (sample.y * weight.x);\n"
     "beam<%BNUM%>s<%SNUM%>.z += (sample.z * weight.x) - (sample.w * weight.y);\n"
     "beam<%BNUM%>s<%SNUM%>.w += (sample.z * weight.y) + (sample.w * weight.x);\n";
-  std::string averageTemplate = "beam<%BNUM%>s<%SNUM%> *= " + isa::utils::toString< float >(1.0f / observation.getNrStations()) + ".0f;\n";
+  std::string averageTemplate = "beam<%BNUM%>s<%SNUM%> *= " + isa::utils::toString< float >(1.0f / observation.getNrStations()) + "f;\n";
   std::string storeTemplate = "output[((beam + <%BNUM%>) * " + isa::utils::toString< unsigned int >(observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond()) + ") + (channel * " + isa::utils::toString< unsigned int >(observation.getNrSamplesPerPaddedSecond()) + ") + sample<%SNUM%>] = beam<%BNUM%>s<%SNUM%>;\n";
   // End kernel's template
 
