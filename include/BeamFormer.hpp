@@ -47,7 +47,7 @@ std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const un
     "}\n";
   std::string defSamplesTemplate = "const unsigned int sample<%SNUM%> = (get_group_id(0) * " + isa::utils::toString< unsigned int >(nrSamplesPerBlock * nrSamplesPerThread) + ") + get_local_id(0) + <%OFFSET%>;\n";
   std::string defSumsTemplate = dataType + "4 beam<%BNUM%>s<%SNUM%> = (" + dataType + "4)(0);\n";
-  std::string loadComputeTemplate = dataType + "4 sample = samples[(channel * " + isa::utils::toString< unsigned int >(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString< unsigned int >(observation.getNrSamplesPerPaddedSecond()) + ") + sample<%SNUM%>];\n"
+  std::string loadComputeTemplate = "sample = samples[(channel * " + isa::utils::toString< unsigned int >(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString< unsigned int >(observation.getNrSamplesPerPaddedSecond()) + ") + sample<%SNUM%>];\n"
     "<%SUMS%>";
   std::string sumsTemplate = "weight = weights[(channel * " + isa::utils::toString< unsigned int >(observation.getNrStations() * observation.getNrBeams()) + ") + (station * " + isa::utils::toString< unsigned int >(observation.getNrBeams()) + ") + beam + <%BNUM%>];\n"
     "beam<%BNUM%>s<%SNUM%>.x += (sample.x * weight.x) - (sample.y * weight.y);\n"
