@@ -54,7 +54,6 @@ int main(int argc, char * argv[]) {
 		nrIterations = args.getSwitchArgument< unsigned int >("-iterations");
 		clPlatformID = args.getSwitchArgument< unsigned int >("-opencl_platform");
 		clDeviceID = args.getSwitchArgument< unsigned int >("-opencl_device");
-    localMem = args.getSwitch("-local");
 		observation.setPadding(args.getSwitchArgument< unsigned int >("-padding"));
     threadUnit = args.getSwitchArgument< unsigned int >("-thread_unit");
 		minThreads = args.getSwitchArgument< unsigned int >("-min_threads");
@@ -85,7 +84,7 @@ int main(int argc, char * argv[]) {
 
 	// Allocate host memory
   std::vector< dataType > samples = std::vector< dataType >(observation.getNrChannels() * observation.getNrStations() * observation.getNrSamplesPerPaddedSecond() * 4);
-  std::vector< float > weights = std::vector< float >(observation.getNrChannels() * observation.getNrStations() observation.getNrPaddedBeams() * 2);
+  std::vector< float > weights = std::vector< float >(observation.getNrChannels() * observation.getNrStations() * observation.getNrPaddedBeams() * 2);
   std::srand(time(0));
   std::fill(weights.begin(), weights.end(), std::rand() % 100);
   std::fill(samples.begin(), samples.end(), std::rand() % 1000);
@@ -120,7 +119,7 @@ int main(int argc, char * argv[]) {
 	std::vector< unsigned int > beamsPerBlock;
 	for ( unsigned int beams = 1; beams <= maxRows; beams++ ) {
 		if ( (observation.getNrBeams() % beams) == 0 ) {
-			beamsPerBlock.push_back(DMs);
+			beamsPerBlock.push_back(beams);
 		}
 	}
 
@@ -149,7 +148,7 @@ int main(int argc, char * argv[]) {
 
           // Generate kernel
           double gflops = isa::utils::giga((static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * observation.getNrStations() * 16) + (static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * 4));
-          double gbs = isa::utils::giga((static_cast< long long unsigned int >(observation.getNrChannels()) * observation.getNrSamplesPerSecond() * observation.getNrStations() * (observation.getNrBeams() / (beamsPerThread * beamsPerBlock)) * 4 * sizeof(dataType)) + (static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * 4 * sizeof(dataType)) + (observation.getNrChannels() * observation.getNrStations() * observation.getNrBeams() * 2 * sizeof(float)));
+          double gbs = isa::utils::giga((static_cast< long long unsigned int >(observation.getNrChannels()) * observation.getNrSamplesPerSecond() * observation.getNrStations() * (observation.getNrBeams() / (beamsPerThread * *beams)) * 4 * sizeof(dataType)) + (static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * 4 * sizeof(dataType)) + (observation.getNrChannels() * observation.getNrStations() * observation.getNrBeams() * 2 * sizeof(float)));
           isa::utils::Timer timer;
           cl::Event event;
           cl::Kernel * kernel;
