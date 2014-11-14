@@ -67,7 +67,7 @@ int main(int argc, char * argv[]) {
     observation.setFrequencyRange(args.getSwitchArgument< unsigned int >("-channels"), 0, 0);
 		observation.setNrSamplesPerSecond(args.getSwitchArgument< unsigned int >("-samples"));
 	} catch ( isa::utils::EmptyCommandLine & err ) {
-		std::cerr << argv[0] << " -iterations ... -opencl_platform ... -opencl_device ... [-local] -padding ... -thread_unit ... -min_threads ... -max_threads ... -max_items ... -max_columns ... -max_rows ... -thread_increment ... -beams ... -stations ... -samples ... -channels ..." << std::endl;
+		std::cerr << argv[0] << " -iterations ... -opencl_platform ... -opencl_device ... -padding ... -thread_unit ... -min_threads ... -max_threads ... -max_items ... -max_columns ... -max_rows ... -thread_increment ... -beams ... -stations ... -samples ... -channels ..." << std::endl;
 		return 1;
 	} catch ( std::exception & err ) {
 		std::cerr << err.what() << std::endl;
