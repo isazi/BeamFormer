@@ -52,7 +52,7 @@ std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const un
   std::string defSumsTemplate = dataType + "4 beam<%BNUM%>s<%SNUM%> = (" + dataType + "4)(0);\n";
   std::string loadComputeTemplate = "itemGlobal = (channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrPaddedBeams()) + ") + (station * " + isa::utils::toString(observation.getNrPaddedBeams()) + ") + (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
     "itemLocal = get_local_id(0);\n"
-    "while ( itemLocal < " + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + ") {\n}"
+    "while ( itemLocal < " + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + ") {\n"
     "localWeights[itemLocal] = weights[itemGlobal];\n"
     "itemLocal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
     "itemGlobal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
