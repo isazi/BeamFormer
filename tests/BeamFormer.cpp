@@ -34,6 +34,7 @@ std::string typeName("float");
 
 int main(int argc, char *argv[]) {
   bool print = false;
+  bool random = false;
 	unsigned int clPlatformID = 0;
 	unsigned int clDeviceID = 0;
 	unsigned int nrSamplesPerBlock = 0;
@@ -46,6 +47,7 @@ int main(int argc, char *argv[]) {
   try {
     isa::utils::ArgumentList args(argc, argv);
     print = args.getSwitch("-print");
+    random = args.getSwitch("-random");
 		clPlatformID = args.getSwitchArgument< unsigned int >("-opencl_platform");
 		clDeviceID = args.getSwitchArgument< unsigned int >("-opencl_device");
     observation.setPadding(args.getSwitchArgument< unsigned int >("-padding"));
@@ -61,7 +63,7 @@ int main(int argc, char *argv[]) {
     std::cerr << err.what() << std::endl;
     return 1;
   }catch ( std::exception &err ) {
-    std::cerr << "Usage: " << argv[0] << " [-print] -opencl_platform ... -opencl_device ... -padding ... -sb ... -bb ... -st ... -bt ... -beams ... -stations ... -samples ... -channels ..." << std::endl;
+    std::cerr << "Usage: " << argv[0] << " [-print] [-random] -opencl_platform ... -opencl_device ... -padding ... -sb ... -bb ... -st ... -bt ... -beams ... -stations ... -samples ... -channels ..." << std::endl;
 		return 1;
 	}
 
@@ -78,7 +80,11 @@ int main(int argc, char *argv[]) {
   std::vector< dataType > output = std::vector< dataType >(observation.getNrBeams() * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * 4);
   std::vector< dataType > output_c = std::vector< dataType >(observation.getNrBeams() * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * 4);
   std::vector< float > weights = std::vector< float >(observation.getNrChannels() * observation.getNrStations() * observation.getNrPaddedBeams() * 2);
-  std::srand(time(0));
+  if ( random ) {
+    std::srand(time(0));
+  } else {
+    std::srand(42);
+  }
   std::fill(weights.begin(), weights.end(), std::rand() % 100);
   std::fill(samples.begin(), samples.end(), std::rand() % 1000);
 
