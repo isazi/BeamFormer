@@ -39,8 +39,8 @@ template< typename T > void beamFormer(const AstroData::Observation & observatio
         T beamP1_i = 0;
 
         for ( unsigned int station = 0; station < observation.getNrStations(); station++ ) {
-          T * samplePointer = &(samples[(channel * observation.getNrStations() * observation.getNrSamplesPerPaddedSecond() * 4) + (station * observation.getNrSamplesPerPaddedSecond() * 4) + (sample * 4)]); 
-          float * weightPointer = &(weights[(channel * observation.getNrStations() * observation.getNrPaddedBeams() * 2) + (station * observation.getNrPaddedBeams() * 2) + (beam * 2)]);
+          T * samplePointer = &(samples.data()[(channel * observation.getNrStations() * observation.getNrSamplesPerPaddedSecond() * 4) + (station * observation.getNrSamplesPerPaddedSecond() * 4) + (sample * 4)]); 
+          float * weightPointer = &(weights.data()[(channel * observation.getNrStations() * observation.getNrPaddedBeams() * 2) + (station * observation.getNrPaddedBeams() * 2) + (beam * 2)]);
 
           beamP0_r += (samplePointer[0] * weightPointer[0]) - (samplePointer[1] * weightPointer[1]);
           beamP0_i += (samplePointer[0] * weightPointer[1]) + (samplePointer[1] * weightPointer[0]);
