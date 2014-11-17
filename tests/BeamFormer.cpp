@@ -26,7 +26,6 @@
 #include <InitializeOpenCL.hpp>
 #include <Kernel.hpp>
 #include <utils.hpp>
-#include <Shifts.hpp>
 #include <BeamFormer.hpp>
 
 typedef float dataType;
