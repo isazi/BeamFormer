@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
     kernel->setArg(1, output_d);
     kernel->setArg(2, weights_d);
     clQueues->at(clDeviceID)[0].enqueueNDRangeKernel(*kernel, cl::NullRange, global, local);
-    RadioAstronomy::beamFormer< dataType >(observation, input, output_c, weights);
+    RadioAstronomy::beamFormer< dataType >(observation, samples, output_c, weights);
     clQueues->at(clDeviceID)[0].enqueueReadBuffer(output_d, CL_TRUE, 0, output.size() * sizeof(dataType), reinterpret_cast< void * >(output.data()));
   } catch ( cl::Error &err ) {
     std::cerr << "OpenCL error kernel execution: " << isa::utils::toString< cl_int >(err.err()) << "." << std::endl;
