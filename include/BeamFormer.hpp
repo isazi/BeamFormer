@@ -23,10 +23,43 @@
 
 namespace RadioAstronomy {
 
+// Sequential beam forming algorithm
+template< typename T > beamFormer(const AstroData::Observation & observation, const std::vector< T > & samples, std::vector< T > & output, const std::vector< float > & weights);
 // OpenCL beam forming algorithm
 std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const unsigned int nrBeamsPerBlock, const unsigned int nrSamplesPerThread, const unsigned int nrBeamsPerThread, const std::string & dataType, const AstroData::Observation & observation);
 
 // Implementations
+template< typename T > beamFormer(const AstroData::Observation & observation, const std::vector< T > & samples, std::vector< T > & output, const std::vector< float > & weights) {
+  for ( unsigned int channel = 0; channel < observation.getNrChannels(); channel++ ) {
+    for ( unsigned int sample = 0; sample < observation.getNrSamplesPerSecond(); sample++ ) {
+      for ( unsigned int beam = 0; beam < observation.getNrBeams(); beam++ ) {
+        T beamP0_r = 0;
+        T beamP0_i = 0;
+        T beamP1_r = 0;
+        T beamP1_i = 0;
+
+        for ( unsigned int station = 0; station < observation.getNrStations(); station++ ) {
+          T * samplePointer = &(samples[(channel * observation.getNrStations() * observation.getNrSamplesPerPaddedSecond() * 4) + (station * observation.getNrSamplesPerPaddedSecond() * 4) + (sample * 4)]); 
+          float * weightPointer = &(weights[(channel * observation.getNrStations() * observation.getNrPaddedBeams() * 2) + (station * observation.getNrPaddedBeams() * 2) + (beam * 2)]);
+
+          beamP0_r += (samplePointer[0] * weightPointer[0]) - (samplePointer[1] * weightPointer[1]);
+          beamP0_i += (samplePointer[0] * weightPointer[1]) + (samplePointer[1] * weightPointer[0]);
+          beamP1_r += (samplePointer[2] * weightPointer[0]) - (samplePointer[3] * weightPointer[1]);
+          beamP1_i += (samplePointer[2] * weightPointer[1]) + (samplePointer[3] * weightPointer[0]);
+        }
+        beamP0_r /= observation.getNrStations();
+        beamP0_i /= observation.getNrStations();
+        beamP1_r /= observation.getNrStations();
+        beamP1_i /= observation.getNrStations();
+        output[(beam * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * 4) + (channel * observation.getNrSamplesPerPaddedSecond() * 4) + (sample * 4)] = beamP0_r;
+        output[(beam * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * 4) + (channel * observation.getNrSamplesPerPaddedSecond() * 4) + (sample * 4) + 1] = beamP0_i;
+        output[(beam * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * 4) + (channel * observation.getNrSamplesPerPaddedSecond() * 4) + (sample * 4) + 2] = beamP1_r;
+        output[(beam * observation.getNrChannels() * observation.getNrSamplesPerPaddedSecond() * 4) + (channel * observation.getNrSamplesPerPaddedSecond() * 4) + (sample * 4) + 3] = beamP1_i;
+      }
+    }
+  }
+}
+
 std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const unsigned int nrBeamsPerBlock, const unsigned int nrSamplesPerThread, const unsigned int nrBeamsPerThread, const std::string & dataType, const AstroData::Observation & observation) {
   std::string * code = new std::string();
 
