@@ -75,7 +75,7 @@ std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const un
     "\n"
     "for ( unsigned int station = 0; station < " + isa::utils::toString(observation.getNrStations()) + "; station++ ) {\n"
     "unsigned int itemGlobal = (channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrPaddedBeams()) + ") + (station * " + isa::utils::toString(observation.getNrPaddedBeams()) + ") + (get_group_id(1) * " + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
-    "unsigned int itemLocal = (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") get_local_id(0);\n"
+    "unsigned int itemLocal = (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
     "while ( itemLocal < " + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + ") {\n"
     "localWeights[itemLocal] = weights[itemGlobal];\n"
     "itemLocal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
