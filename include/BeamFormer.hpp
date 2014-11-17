@@ -24,12 +24,12 @@
 namespace RadioAstronomy {
 
 // Sequential beam forming algorithm
-template< typename T > void beamFormer(const AstroData::Observation & observation, const std::vector< T > & samples, std::vector< T > & output, const std::vector< float > & weights);
+template< typename T > void beamFormer(const AstroData::Observation & observation, std::vector< T > & samples, std::vector< T > & output, std::vector< float > & weights);
 // OpenCL beam forming algorithm
 std::string * getBeamFormerOpenCL(const unsigned int nrSamplesPerBlock, const unsigned int nrBeamsPerBlock, const unsigned int nrSamplesPerThread, const unsigned int nrBeamsPerThread, const std::string & dataType, const AstroData::Observation & observation);
 
 // Implementations
-template< typename T > void beamFormer(const AstroData::Observation & observation, const std::vector< T > & samples, std::vector< T > & output, const std::vector< float > & weights) {
+template< typename T > void beamFormer(const AstroData::Observation & observation, std::vector< T > & samples, std::vector< T > & output, std::vector< float > & weights) {
   for ( unsigned int channel = 0; channel < observation.getNrChannels(); channel++ ) {
     for ( unsigned int sample = 0; sample < observation.getNrSamplesPerSecond(); sample++ ) {
       for ( unsigned int beam = 0; beam < observation.getNrBeams(); beam++ ) {
