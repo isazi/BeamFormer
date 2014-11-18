@@ -36,6 +36,7 @@ std::string typeName("float");
 
 
 int main(int argc, char * argv[]) {
+  bool local = false;
 	unsigned int nrIterations = 0;
 	unsigned int clPlatformID = 0;
 	unsigned int clDeviceID = 0;
@@ -51,6 +52,7 @@ int main(int argc, char * argv[]) {
 	try {
     isa::utils::ArgumentList args(argc, argv);
 
+    local = args.getSwitch("-local");
 		nrIterations = args.getSwitchArgument< unsigned int >("-iterations");
 		clPlatformID = args.getSwitchArgument< unsigned int >("-opencl_platform");
 		clDeviceID = args.getSwitchArgument< unsigned int >("-opencl_device");
@@ -67,7 +69,7 @@ int main(int argc, char * argv[]) {
     observation.setFrequencyRange(args.getSwitchArgument< unsigned int >("-channels"), 0, 0);
 		observation.setNrSamplesPerSecond(args.getSwitchArgument< unsigned int >("-samples"));
 	} catch ( isa::utils::EmptyCommandLine & err ) {
-		std::cerr << argv[0] << " -iterations ... -opencl_platform ... -opencl_device ... -padding ... -thread_unit ... -min_threads ... -max_threads ... -max_items ... -max_columns ... -max_rows ... -thread_increment ... -beams ... -stations ... -samples ... -channels ..." << std::endl;
+		std::cerr << argv[0] << " -iterations ... [-local] -opencl_platform ... -opencl_device ... -padding ... -thread_unit ... -min_threads ... -max_threads ... -max_items ... -max_columns ... -max_rows ... -thread_increment ... -beams ... -stations ... -samples ... -channels ..." << std::endl;
 		return 1;
 	} catch ( std::exception & err ) {
 		std::cerr << err.what() << std::endl;
@@ -152,7 +154,7 @@ int main(int argc, char * argv[]) {
           isa::utils::Timer timer;
           cl::Event event;
           cl::Kernel * kernel;
-          std::string * code = RadioAstronomy::getBeamFormerOpenCL(*samples, *beams, samplesPerThread, beamsPerThread, typeName, observation);
+          std::string * code = RadioAstronomy::getBeamFormerOpenCL(local, *samples, *beams, samplesPerThread, beamsPerThread, typeName, observation);
 
           try {
             kernel = isa::OpenCL::compile("beamFormer", *code, "-cl-mad-enable -Werror", *clContext, clDevices->at(clDeviceID));
