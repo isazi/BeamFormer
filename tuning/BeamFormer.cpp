@@ -126,7 +126,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	std::cout << std::fixed << std::endl;
-	std::cout << "# nrBeams nrStations nrChannels nrSamples samplesPerBlock beamsPerBlock samplesPerThread beamsPerThread GFLOP/s GB/s time stdDeviation COV" << std::endl << std::endl;
+	std::cout << "# nrBeams nrStations nrChannels nrSamples local samplesPerBlock beamsPerBlock samplesPerThread beamsPerThread GFLOP/s GB/s time stdDeviation COV" << std::endl << std::endl;
 
 	for ( std::vector< unsigned int >::iterator samples = samplesPerBlock.begin(); samples != samplesPerBlock.end(); ++samples ) {
 		for ( std::vector< unsigned int >::iterator beams = beamsPerBlock.begin(); beams != beamsPerBlock.end(); ++beams ) {
@@ -191,7 +191,8 @@ int main(int argc, char * argv[]) {
             continue;
           }
 
-          std::cout << observation.getNrBeams() << " " << observation.getNrStations() << " " << observation.getNrChannels() << " " << observation.getNrSamplesPerSecond() << " " << *samples << " " << *beams << " " << samplesPerThread << " " << beamsPerThread << " ";
+          std::cout << observation.getNrBeams() << " " << observation.getNrStations() << " " << observation.getNrChannels() << " " << observation.getNrSamplesPerSecond() << " ";
+          std::cout << local << " " << *samples << " " << *beams << " " << samplesPerThread << " " << beamsPerThread << " ";
           std::cout << std::setprecision(3);
           std::cout << gflops / timer.getAverageTime() << " ";
           std::cout << gbs / timer.getAverageTime() << " ";
