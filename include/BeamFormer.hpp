@@ -85,7 +85,7 @@ std::string * getBeamFormerOpenCL(const bool local, const unsigned int nrSamples
       "itemLocal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
       "itemGlobal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
       "}\n"
-      "globalItem = (channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString(observation.getNrSamplesPerPaddedSecond()) + ") + (get_group_id(0) * " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
+      "itemGlobal = (channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString(observation.getNrSamplesPerPaddedSecond()) + ") + (get_group_id(0) * " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
       "itemLocal = (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
       "while ( itemLocal < " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") {\n"
       "sample = samples[itemGlobal];\n"
