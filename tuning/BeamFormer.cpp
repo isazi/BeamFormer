@@ -36,7 +36,7 @@ std::string typeName("float");
 
 
 int main(int argc, char * argv[]) {
-  bool local = false;
+  bool localMem = false;
 	unsigned int nrIterations = 0;
 	unsigned int clPlatformID = 0;
 	unsigned int clDeviceID = 0;
@@ -52,7 +52,7 @@ int main(int argc, char * argv[]) {
 	try {
     isa::utils::ArgumentList args(argc, argv);
 
-    local = args.getSwitch("-local");
+    localMem = args.getSwitch("-local");
 		nrIterations = args.getSwitchArgument< unsigned int >("-iterations");
 		clPlatformID = args.getSwitchArgument< unsigned int >("-opencl_platform");
 		clDeviceID = args.getSwitchArgument< unsigned int >("-opencl_device");
@@ -144,9 +144,9 @@ int main(int argc, char * argv[]) {
 				for ( unsigned int beamsPerThread = 1; beamsPerThread <= maxItems; beamsPerThread++ ) {
 					if ( (observation.getNrBeams() % ((*beams) * beamsPerThread)) != 0 ) {
 						continue;
-					} else if ( !local && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 8) > maxItems ) {
+					} else if ( !localMem && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 8) > maxItems ) {
 						break;
-					} else if ( local && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 12) > maxItems ) {
+					} else if ( localMem && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 12) > maxItems ) {
             break;
           }
 
@@ -156,7 +156,7 @@ int main(int argc, char * argv[]) {
           isa::utils::Timer timer;
           cl::Event event;
           cl::Kernel * kernel;
-          std::string * code = RadioAstronomy::getBeamFormerOpenCL(local, *samples, *beams, samplesPerThread, beamsPerThread, typeName, observation);
+          std::string * code = RadioAstronomy::getBeamFormerOpenCL(localMem, *samples, *beams, samplesPerThread, beamsPerThread, typeName, observation);
 
           try {
             kernel = isa::OpenCL::compile("beamFormer", *code, "-cl-mad-enable -Werror", *clContext, clDevices->at(clDeviceID));
@@ -194,7 +194,7 @@ int main(int argc, char * argv[]) {
           }
 
           std::cout << observation.getNrBeams() << " " << observation.getNrStations() << " " << observation.getNrChannels() << " " << observation.getNrSamplesPerSecond() << " ";
-          std::cout << local << " " << *samples << " " << *beams << " " << samplesPerThread << " " << beamsPerThread << " ";
+          std::cout << localMem << " " << *samples << " " << *beams << " " << samplesPerThread << " " << beamsPerThread << " ";
           std::cout << std::setprecision(3);
           std::cout << gflops / timer.getAverageTime() << " ";
           std::cout << gbs / timer.getAverageTime() << " ";
