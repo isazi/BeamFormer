@@ -144,9 +144,11 @@ int main(int argc, char * argv[]) {
 				for ( unsigned int beamsPerThread = 1; beamsPerThread <= maxItems; beamsPerThread++ ) {
 					if ( (observation.getNrBeams() % ((*beams) * beamsPerThread)) != 0 ) {
 						continue;
-					} else if ( (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 8) > maxItems ) {
+					} else if ( !local && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 8) > maxItems ) {
 						break;
-					}
+					} else if ( local && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 12) > maxItems ) {
+            break;
+          }
 
           // Generate kernel
           double gflops = isa::utils::giga((static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * observation.getNrStations() * 16) + (static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * 4));
