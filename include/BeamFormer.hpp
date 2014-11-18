@@ -71,7 +71,8 @@ std::string * getBeamFormerOpenCL(const bool local, const unsigned int nrSamples
     "<%DEF_SUMS%>"
     + dataType + "4 sample = (" + dataType + "4)(0);\n";
   if ( local ) {
-    *code += "__local float2 localWeights[" + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + "];\n";
+    *code += "__local float2 localWeights[" + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + "];\n"
+      "__local float localSamples[" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding()) * 4) + "];\n";
   }
   *code += "float2 weight = (float2)(0);\n"
     "\n"
@@ -84,6 +85,17 @@ std::string * getBeamFormerOpenCL(const bool local, const unsigned int nrSamples
       "itemLocal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
       "itemGlobal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
       "}\n"
+      "globalItem = (channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString(observation.getNrSamplesPerPaddedSecond()) + ") + (get_group_id(0) * " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
+      "itemLocal = (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
+      "while ( itemLocal < " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") {\n"
+      "sample = samples[itemGlobal];\n"
+      "localSamples[itemLocal] = sample.x;\n"
+      "localSamples[(" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding())) + ") + itemLocal] = sample.y;\n"
+      "localSamples[(" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding()) * 2) + ") + itemLocal] = sample.z;\n"
+      "localSamples[(" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding()) * 3) + ") + itemLocal] = sample.w;\n"
+      "itemLocal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
+      "itemGlobal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
+      "}\n"
       "barrier(CLK_LOCAL_MEM_FENCE);\n";
   }
   *code += "<%LOAD_COMPUTE%>"
@@ -93,8 +105,16 @@ std::string * getBeamFormerOpenCL(const bool local, const unsigned int nrSamples
     "}\n";
   std::string defSamplesTemplate = "const unsigned int sample<%SNUM%> = (get_group_id(0) * " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") + get_local_id(0) + <%OFFSET%>;\n";
   std::string defSumsTemplate = dataType + "4 beam<%BNUM%>s<%SNUM%> = (" + dataType + "4)(0);\n";
-  std::string loadComputeTemplate = "sample = samples[(channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString(observation.getNrSamplesPerPaddedSecond()) + ") + sample<%SNUM%>];\n"
-    "<%SUMS%>";
+  std::string loadComputeTemplate;
+  if ( local ) {
+   loadComputeTemplate += "sample.x = localSamples[get_local_id(0) + <%OFFSET%>];\n"
+     "sample.y = localSamples[(" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding())) + ") + get_local_id(0) + <%OFFSET%>];\n"
+     "sample.z = localSamples[(" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding()) * 2) + ") + get_local_id(0) + <%OFFSET%>];\n"
+     "sample.w = localSamples[(" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding()) * 3) + ") + get_local_id(0) + <%OFFSET%>];\n";
+  } else {
+   loadComputeTemplate += "sample = samples[(channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString(observation.getNrSamplesPerPaddedSecond()) + ") + sample<%SNUM%>];\n";
+  }
+  loadComputeTemplate += "<%SUMS%>";
   std::string sumsTemplate;
   if ( local ) {
     sumsTemplate += "weight = localWeights[(get_local_id(1) * " + isa::utils::toString(nrBeamsPerThread) + ") + <%BNUM%>];\n";
