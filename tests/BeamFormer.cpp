@@ -35,7 +35,7 @@ std::string typeName("float");
 int main(int argc, char *argv[]) {
   bool print = false;
   bool random = false;
-  bool local = false;
+  bool localMem = false;
 	unsigned int clPlatformID = 0;
 	unsigned int clDeviceID = 0;
 	unsigned int nrSamplesPerBlock = 0;
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     isa::utils::ArgumentList args(argc, argv);
     print = args.getSwitch("-print");
     random = args.getSwitch("-random");
-    local = args.getSwitch("-local");
+    localMem = args.getSwitch("-local");
 		clPlatformID = args.getSwitchArgument< unsigned int >("-opencl_platform");
 		clDeviceID = args.getSwitchArgument< unsigned int >("-opencl_device");
     observation.setPadding(args.getSwitchArgument< unsigned int >("-padding"));
@@ -111,7 +111,7 @@ int main(int argc, char *argv[]) {
   }
 
 	// Generate kernel
-  std::string * code = RadioAstronomy::getBeamFormerOpenCL(local, nrSamplesPerBlock, nrBeamsPerBlock, nrSamplesPerThread, nrBeamsPerThread, typeName, observation);
+  std::string * code = RadioAstronomy::getBeamFormerOpenCL(localMem, nrSamplesPerBlock, nrBeamsPerBlock, nrSamplesPerThread, nrBeamsPerThread, typeName, observation);
   cl::Kernel * kernel;
   if ( print ) {
     std::cout << *code << std::endl;
