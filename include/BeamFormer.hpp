@@ -165,6 +165,7 @@ std::string * getBeamFormerOpenCL(const bool local, const unsigned int nrSamples
     }
     defSums_s = isa::utils::replace(defSums_s, "<%SNUM%>", sample_s, true);
     temp_s = isa::utils::replace(&loadComputeTemplate, "<%SNUM%>", sample_s);
+    temp_s = isa::utils::replace(temp_s, "<%OFFSET%>", offset_s, true);
     temp_s = isa::utils::replace(temp_s, "<%SUMS%>", *sums_s, true);
     temp_s = isa::utils::replace(temp_s, "<%SNUM%>", sample_s, true);
     loadCompute_s->append(*temp_s);
