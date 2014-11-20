@@ -64,28 +64,20 @@ std::string * getBeamFormerOpenCL(const bool local, const unsigned int nrSamples
   std::string * code = new std::string();
 
   // Begin kernel's template
-  *code = "__kernel void beamFormer(__global const " + dataType + "4 * restrict const samples, __global " + dataType + "4 * restrict const output, __global const float2 * restrict const weights) {\n"
+  *code = "__kernel void beamFormer(__global const " + dataType + "4 * restrict const samples, __global " + dataType + "4 * restrict const output, __constant const float2 * restrict const weights) {\n"
     "const unsigned int channel = get_group_id(2);\n"
     "const unsigned int beam = (get_group_id(1) * " + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrBeamsPerThread) + ");\n"
     "<%DEF_SAMPLES%>"
     "<%DEF_SUMS%>"
     + dataType + "4 sample = (" + dataType + "4)(0);\n";
   if ( local ) {
-    *code += "__local float2 localWeights[" + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + "];\n"
-      "__local float localSamples[" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding()) * 4) + "];\n";
+    *code += "__local float localSamples[" + isa::utils::toString(isa::utils::pad(nrSamplesPerBlock * nrSamplesPerThread, observation.getPadding()) * 4) + "];\n";
   }
   *code += "float2 weight = (float2)(0);\n"
     "\n"
     "for ( unsigned int station = 0; station < " + isa::utils::toString(observation.getNrStations()) + "; station++ ) {\n";
   if ( local ) {
-    *code += "unsigned int itemGlobal = (channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrPaddedBeams()) + ") + (station * " + isa::utils::toString(observation.getNrPaddedBeams()) + ") + (get_group_id(1) * " + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
-      "unsigned int itemLocal = (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
-      "while ( itemLocal < " + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + ") {\n"
-      "localWeights[itemLocal] = weights[itemGlobal];\n"
-      "itemLocal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
-      "itemGlobal += " + isa::utils::toString(nrSamplesPerBlock * nrBeamsPerBlock) + ";\n"
-      "}\n"
-      "itemGlobal = (channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString(observation.getNrSamplesPerPaddedSecond()) + ") + (get_group_id(0) * " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
+    *code += "itemGlobal = (channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString(observation.getNrSamplesPerPaddedSecond()) + ") + (get_group_id(0) * " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
       "itemLocal = (get_local_id(1) * " + isa::utils::toString(nrSamplesPerBlock) + ") + get_local_id(0);\n"
       "while ( itemLocal < " + isa::utils::toString(nrSamplesPerBlock * nrSamplesPerThread) + ") {\n"
       "sample = samples[itemGlobal];\n"
@@ -115,13 +107,8 @@ std::string * getBeamFormerOpenCL(const bool local, const unsigned int nrSamples
    loadComputeTemplate += "sample = samples[(channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrSamplesPerPaddedSecond()) + ") + (station * " + isa::utils::toString(observation.getNrSamplesPerPaddedSecond()) + ") + sample<%SNUM%>];\n";
   }
   loadComputeTemplate += "<%SUMS%>";
-  std::string sumsTemplate;
-  if ( local ) {
-    sumsTemplate += "weight = localWeights[(get_local_id(1) * " + isa::utils::toString(nrBeamsPerThread) + ") + <%BNUM%>];\n";
-  } else {
-    sumsTemplate += "weight = weights[(channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrPaddedBeams()) + ") + (station * " + isa::utils::toString(observation.getNrPaddedBeams()) + ") + beam + <%BNUM%>];\n";
-  }
-  sumsTemplate += "beam<%BNUM%>s<%SNUM%>.x += (sample.x * weight.x) - (sample.y * weight.y);\n"
+  std::string sumsTemplate = "weight = weights[(channel * " + isa::utils::toString(observation.getNrStations() * observation.getNrPaddedBeams()) + ") + (station * " + isa::utils::toString(observation.getNrPaddedBeams()) + ") + beam + <%BNUM%>];\n"
+    "beam<%BNUM%>s<%SNUM%>.x += (sample.x * weight.x) - (sample.y * weight.y);\n"
     "beam<%BNUM%>s<%SNUM%>.y += (sample.x * weight.y) + (sample.y * weight.x);\n"
     "beam<%BNUM%>s<%SNUM%>.z += (sample.z * weight.x) - (sample.w * weight.y);\n"
     "beam<%BNUM%>s<%SNUM%>.w += (sample.z * weight.y) + (sample.w * weight.x);\n";
