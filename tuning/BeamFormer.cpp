@@ -152,7 +152,12 @@ int main(int argc, char * argv[]) {
 
           // Generate kernel
           double gflops = isa::utils::giga((static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * observation.getNrStations() * 16) + (static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * 4));
-          double gbs = isa::utils::giga((static_cast< long long unsigned int >(observation.getNrChannels()) * observation.getNrSamplesPerSecond() * observation.getNrStations() * (observation.getNrBeams() / (beamsPerThread * *beams)) * 4 * sizeof(dataType)) + (static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * 4 * sizeof(dataType)) + (observation.getNrChannels() * observation.getNrStations() * (observation.getNrBeams() / (samplesPerThread * *samples)) * 2 * sizeof(float)));
+          double gbs;
+          if ( localMem ) {
+            gbs = isa::utils::giga((static_cast< long long unsigned int >(observation.getNrChannels()) * observation.getNrSamplesPerSecond() * observation.getNrStations() * (observation.getNrBeams() / (beamsPerThread * *beams)) * 4 * sizeof(dataType)) + (static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * 4 * sizeof(dataType)) + (observation.getNrChannels() * observation.getNrStations() * observation.getNrBeams() * 2 * sizeof(float)));
+          } else {
+            gbs = isa::utils::giga((static_cast< long long unsigned int >(observation.getNrChannels()) * observation.getNrSamplesPerSecond() * observation.getNrStations() * observation.getNrBeams() * 4 * sizeof(dataType)) + (static_cast< long long unsigned int >(observation.getNrBeams()) * observation.getNrChannels() * observation.getNrSamplesPerSecond() * 4 * sizeof(dataType)) + (observation.getNrChannels() * observation.getNrStations() * observation.getNrBeams() * 2 * sizeof(float)));
+          }
           isa::utils::Timer timer;
           cl::Event event;
           cl::Kernel * kernel;
