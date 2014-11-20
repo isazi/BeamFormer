@@ -146,7 +146,7 @@ int main(int argc, char * argv[]) {
 						continue;
 					} else if ( !localMem && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 8) > maxItems ) {
 						break;
-					} else if ( localMem && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 12) > maxItems ) {
+					} else if ( localMem && (samplesPerThread + (samplesPerThread * beamsPerThread * 4) + 11) > maxItems ) {
             break;
           }
 
