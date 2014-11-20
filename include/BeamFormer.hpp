@@ -64,7 +64,7 @@ std::string * getBeamFormerOpenCL(const bool local, const unsigned int nrSamples
   std::string * code = new std::string();
 
   // Begin kernel's template
-  *code = "__kernel void beamFormer(__global const " + dataType + "4 * restrict const samples, __global " + dataType + "4 * restrict const output, __constant const float2 * restrict const weights) {\n"
+  *code = "__kernel void beamFormer(__global const " + dataType + "4 * restrict const samples, __global " + dataType + "4 * restrict const output, __global const float2 * restrict const weights) {\n"
     "const unsigned int channel = get_group_id(2);\n"
     "const unsigned int beam = (get_group_id(1) * " + isa::utils::toString(nrBeamsPerBlock * nrBeamsPerThread) + ") + (get_local_id(1) * " + isa::utils::toString(nrBeamsPerThread) + ");\n"
     "<%DEF_SAMPLES%>"
